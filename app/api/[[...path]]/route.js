@@ -103,7 +103,7 @@ function startupMemory(s) {
 }
 
 function turnSystemPrompt(panel) {
-  return `You are the simulation engine for EchoClash, a ruthless adversarial startup-pitch simulator. You control an AI investment panel of exactly 3 distinct personas evaluating a founder's LIVE pitch. You behave like a top-tier investment committee: sharp, specific, numerically rigorous, never flattering. You catch vague claims and numerical inconsistencies instantly.
+  return `You are the simulation engine for Pitch Hive, a ruthless adversarial startup-pitch simulator. You control an AI investment panel of exactly 3 distinct personas evaluating a founder's LIVE pitch. You behave like a top-tier investment committee: sharp, specific, numerically rigorous, never flattering. You catch vague claims and numerical inconsistencies instantly.
 
 ACTIVE PANEL: ${panel.name} (${panel.tagline}).
 PERSONAS (honor each persona's lens, style and distrusts precisely; different personas ask different questions):
@@ -145,7 +145,7 @@ function buildTurnUser(session, startup, founderMessage) {
 }
 
 function deliberationSystem(panel) {
-  return `You are the deliberation engine for EchoClash. The pitch to the ${panel.name} has ended. Three personas now deliberate and produce a final verdict and a founder debrief. Be brutally honest and specific \u2014 this is meant to help the founder find exactly where the startup breaks.
+  return `You are the deliberation engine for Pitch Hive. The pitch to the ${panel.name} has ended. Three personas now deliberate and produce a final verdict and a founder debrief. Be brutally honest and specific \u2014 this is meant to help the founder find exactly where the startup breaks.
 
 PERSONAS:\n${personaBlock(panel)}\n\nBELIEF DIMENSIONS: ${DIM_LINE}.\n\nProduce: consensus, disagreements between personas (and why), investment conditions, the strongest and weakest dimension, critical unresolved questions, a weighted final_score 0-100, a confidence 0-100, and a verdict which is EXACTLY one of: "Strong Interest", "Interest", "Conditional Interest", "Needs More Evidence", "Pass".\nAlso produce GAPS the founder must fix, each with severity P0 (critical, blocks investment), P1 (important) or P2 (notable), classified by category, with transcript_evidence, why_it_matters, recommended_action and required_evidence.\nAlso produce a SCORECARD: for each of the 10 dimensions give a 0-10 score (aggregate across the panel), and a one-line reason.\n\nMoney is INR (\u20b9). Return ONLY one valid minified JSON object, no markdown, exactly this shape:\n{"final_score":0,"confidence":0,"verdict":"","consensus":[""],"disagreements":[{"topic":"","positions":""}],"investment_conditions":[""],"strongest_dimension":"","weakest_dimension":"","unresolved_questions":[""],"gaps":[{"category":"","severity":"P0|P1|P2","panel_source":"","transcript_evidence":"","why_it_matters":"","recommended_action":"","required_evidence":""}],"scorecard":[{"dimension":"","score":0,"reason":""}]}\nUse only the dimension keys given above in scorecard.`
 }
@@ -164,7 +164,7 @@ const LENGTH_LABELS = { '60s': '60-second', '90s': '90-second', '2min': '2-minut
 
 function rewriteSystem(lengthKey) {
   const label = LENGTH_LABELS[lengthKey] || 'concise'
-  return `You are an expert startup pitch writer for EchoClash. Rewrite the founder's pitch so it directly addresses the investment panel's objections and the selected gaps, tuned for a ${label} spoken pitch.
+  return `You are an expert startup pitch writer for Pitch Hive. Rewrite the founder's pitch so it directly addresses the investment panel's objections and the selected gaps, tuned for a ${label} spoken pitch.
 
 STRICT HONESTY RULES:
 - NEVER invent customers, revenue, traction, statistics, evidence, partnerships, or numbers that are not present in the startup memory or the transcript.
@@ -370,7 +370,7 @@ async function handleRoute(request, { params }) {
     const db = await connectToMongo()
 
     // health
-    if (route === '/' || route === '/root') return json({ message: 'EchoClash API' })
+    if (route === '/' || route === '/root') return json({ message: 'Pitch Hive API' })
 
     // ---- DEEPGRAM: browser STT auth. Prefer a short-lived scoped token (secure).
     //      Falls back to the raw key via the browser 'token' subprotocol if the key
