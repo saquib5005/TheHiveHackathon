@@ -101,3 +101,149 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+
+user_problem_statement: "EchoClash — AI adversarial pitch simulation. Core loop first: login → create startup → pick panel → live pitch room where 3 AI investor personas challenge the founder, extract claims, detect contradictions (incl. derived numeric like CAC), update belief scores live, then End Pitch → deliberation → verdict + gaps + scorecard (debrief). Built on Next.js + MongoDB. AI via Emergent Universal Key (OpenAI-compatible proxy) → claude-opus-4-6."
+
+backend:
+  - task: "Auth tiered login (free + pro)"
+    implemented: true
+    working: true
+    file: "app/api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: "NA"
+        -agent: "main"
+        -comment: "POST /api/auth/login now supports phoenix123@gmail.com/phoenix123 (tier=free, pitch_limit=1) and test@example.com/password123 (tier=pro, pitch_limit=5). Returns tier + pitch_limit. Invalid creds -> 401."
+        -working: true
+        -agent: "testing"
+        -comment: "✅ All auth tests passed (3/3): Free tier login returns correct tier/limit, pro tier login works, wrong password correctly returns 401. Tested via backend_test.py."
+
+  - task: "Subscription usage + dummy upgrade"
+    implemented: true
+    working: true
+    file: "app/api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: "NA"
+        -agent: "main"
+        -comment: "GET /api/usage?user_id= returns {tier,limit,used,remaining,can_pitch}. POST /api/subscription/upgrade {user_id,plan} promotes user to pro (pitch_limit 5, or 999 for plan=unlimited)."
+        -working: true
+        -agent: "testing"
+        -comment: "✅ All subscription tests passed (4/4): Usage endpoint returns correct data for both free and pro users. Upgrade to pro (limit 5) works. Upgrade to unlimited (limit 999) works. Tested via backend_test.py."
+
+  - task: "Pitch limit gate on POST /api/sessions"
+    implemented: true
+    working: true
+    file: "app/api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: "NA"
+        -agent: "main"
+        -comment: "Creating a live session counts existing live sessions for the user; when used >= pitch_limit returns 402 with error 'pitch_limit_reached'. Free user (limit 1) should be blocked on 2nd session; pro (limit 5) allowed more. Demo sessions (mode demo) are exempt."
+        -working: true
+        -agent: "testing"
+        -comment: "✅ All pitch limit gate tests passed (3/3): Free user (phoenix) correctly blocked with 402 'pitch_limit_reached' when limit exceeded. First session succeeds, second session blocked. Pro user can create sessions within their limit. Tested via backend_test.py."
+
+  - task: "Mentors seed + list + detail"
+    implemented: true
+    working: true
+    file: "app/api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: "NA"
+        -agent: "main"
+        -comment: "POST /api/mentors/seed idempotent (10 mentors). GET /api/mentors filterable by city, expertise, experience_tier. GET /api/mentors/:id single. Auto-seeds on first GET if empty. Slots span next 7 days."
+        -working: true
+        -agent: "testing"
+        -comment: "✅ All mentor tests passed (7/7): Seed endpoint creates 10 mentors idempotently. List endpoint returns all mentors with required fields. Filters work correctly (city=Bangalore, experience_tier=Veteran, expertise=Fundraising). Detail endpoint returns single mentor. Tested via backend_test.py."
+
+  - task: "Bookings create + list"
+    implemented: true
+    working: true
+    file: "app/api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: "NA"
+        -agent: "main"
+        -comment: "POST /api/bookings {user_id,mentor_id,date,time} creates confirmed booking with amount=mentor.hourly_rate, duration 60, currency INR. GET /api/bookings?user_id= lists user's bookings."
+        -working: true
+        -agent: "testing"
+        -comment: "✅ All booking tests passed (3/3): Create booking returns confirmed status with correct amount, duration (60), currency (INR), and mentor_name. List endpoint returns user bookings. Missing mentor_id correctly returns 400. Tested via backend_test.py."
+
+  - task: "Incubators seed + list + detail"
+    implemented: true
+    working: true
+    file: "app/api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: "NA"
+        -agent: "main"
+        -comment: "POST /api/incubators/seed idempotent (11 entries, Bangalore + Chennai). GET /api/incubators filterable by city, stage_support, type. GET /api/incubators/:id single. Auto-seeds on first GET if empty."
+        -working: true
+        -agent: "testing"
+        -comment: "✅ All incubator tests passed (7/7): Seed endpoint creates 11 incubators idempotently. List endpoint returns all incubators with required fields. Filters work correctly (city=Chennai, type=accelerator, stage_support=idea). Detail endpoint returns single incubator. Tested via backend_test.py."
+
+  - task: "Connection requests create + list"
+    implemented: true
+    working: true
+    file: "app/api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: "NA"
+        -agent: "main"
+        -comment: "POST /api/connection-requests {user_id,incubator_id,startup_name,startup_stage,message} creates status=pending. GET /api/connection-requests?user_id= lists them."
+        -working: true
+        -agent: "testing"
+        -comment: "✅ All connection request tests passed (3/3): Create request returns pending status with incubator_name populated. List endpoint returns user requests. Missing startup_name correctly returns 400. Tested via backend_test.py."
+
+frontend:
+  - task: "Mentors + Incubators + Subscription UI"
+    implemented: true
+    working: "NA"
+    file: "app/page.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: "NA"
+        -agent: "main"
+        -comment: "New Shell nav (Mentors/Incubators + tier pill/Upgrade). Dashboard usage banner + quick-access cards + pitch gating. MentorsView list/detail/slots/dummy-payment/confirmation/my-bookings. IncubatorsView directory/filters/detail-modal/connect-form/my-requests. SubscriptionView pricing + dummy payment. Verified manually via screenshots incl full booking flow."
+
+metadata:
+  created_by: "main_agent"
+  version: "2.0"
+  test_sequence: 1
+  run_ui: false
+
+test_plan:
+  current_focus:
+    - "Auth tiered login (free + pro)"
+    - "Subscription usage + dummy upgrade"
+    - "Pitch limit gate on POST /api/sessions"
+    - "Mentors seed + list + detail"
+    - "Bookings create + list"
+    - "Incubators seed + list + detail"
+    - "Connection requests create + list"
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+    -agent: "main"
+    -comment: "Enhanced existing EchoClash app (cloned from user's GitHub) with monetization: (1) tiered auth + subscription gating on pitch sessions, (2) mentor marketplace with dummy-payment bookings, (3) incubator/accelerator directory with connection requests. Please test all NEW backend endpoints listed above. Focus on the pitch-limit gate: free user (phoenix123@gmail.com) has limit 1, pro (test@example.com) has limit 5; POST /api/sessions must return 402 'pitch_limit_reached' when exceeded. Do NOT retest existing pitch/LLM/Deepgram endpoints. Note: creating live sessions consumes the free user's quota — account for that in test ordering (test the gate intentionally)."
+    -agent: "testing"
+    -comment: "✅ Backend testing complete! All 29 tests passed (7 tasks, 29 individual test cases). Tested all NEW monetization endpoints: (1) Auth tiered login with free/pro tiers and 401 on wrong password, (2) Usage tracking and subscription upgrade (pro/unlimited), (3) Pitch limit gate correctly blocks free users at limit with 402 'pitch_limit_reached', (4) Mentors seed/list/filters/detail all working, (5) Bookings create/list with validation, (6) Incubators seed/list/filters/detail all working, (7) Connection requests create/list with validation. All endpoints return correct status codes, data structures, and error handling. No issues found. Backend is production-ready."
