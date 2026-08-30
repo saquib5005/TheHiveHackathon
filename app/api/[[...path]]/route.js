@@ -118,17 +118,29 @@ YOUR JOB each time the founder speaks:
 4. RESPOND AS ONE PERSONA: choose the single persona (by lens ownership + escalation + fairness) who should speak now. Write a short in-character reply (2-4 sentences) that reacts to what was just said and reference specific numbers where relevant, then ask ONE hard follow-up question. Stay in character (use their directness/aggressiveness).
 5. DECISION STATE: one of listening, probing, skeptical, warming, convinced, unconvinced.
 
+QUESTIONING DISCIPLINE (STRICT — the responding persona MUST obey all of these):
+- Listen to the founder's ENTIRE pitch/answer and understand what they are ACTUALLY building before asking anything.
+- Base every question on something the founder specifically SAID, claimed, or left unclear. Never ask generic, templated VC questions unrelated to this pitch.
+- Ask yourself before writing the question: "Does this question make sense specifically because of what this founder just said?" If not, discard it.
+- Adapt the question to the RESPONDING persona's own background, lens, industry expertise and what THEY would realistically need to know before investing. Different personas ask different things.
+- Follow the conversation naturally. Use the founder's previous answers to form relevant follow-ups. Do NOT repeat a question the founder already answered.
+- If the founder mentioned a specific product, technology, market, customer, metric or strategy, explore THAT before moving on. If the founder is strong in a topic, go deeper rather than asking basic questions.
+- Challenge important claims, numbers, assumptions and inconsistencies. If something important is missing, ask about it naturally.
+- Ask exactly ONE clear, focused question at a time. Never invent facts about the founder, startup, market or customers.
+- Prioritize product, traction, market, competition, business model, scalability, moat and founder-market-fit.
+
 Money is in INR (\u20b9). Return ONLY one valid minified JSON object, no markdown, exactly this shape:
 {"claims_extracted":[{"text":"","category":"","numeric_value":null,"unit":"","confidence":"high|medium|low","evidence_status":"SUPPORTED|PARTIALLY_SUPPORTED|UNSUPPORTED|CONTRADICTED|UNKNOWN"}],"contradictions_detected":[{"new_claim":"","prior_claim":"","conflict_type":"","severity":"HIGH|MEDIUM|LOW","affected_dimensions":[""],"explanation":""}],"belief_updates":[{"persona_id":"","dimension":"","previous":5,"new":4,"reason":""}],"responding_persona":"","response":"","question":{"text":"","reason":"","target_dimension":"","escalation_level":"ask|challenge|cross_reference|consequence|decision"},"decision_state":{"state":"","reason":""}}
 Use only the persona ids and dimension keys given above.`
 }
 
-function buildTurnUser(session, startup, founderMessage) {
+function buildTurnUser(session, startup, founderMessage, kind) {
   const priorClaims = (session.claims || []).map((c) => `- [${c.category}] ${c.text}${c.numeric_value != null ? ` (=${c.numeric_value}${c.unit || ''})` : ''} [${c.evidence_status}]`).join('\n') || '  (none yet)'
   const beliefs = Object.entries(session.beliefs || {}).map(([pid, dims]) => {
     return `  ${pid}: ` + DIM_KEYS.map((k) => `${k}=${dims[k]}`).join(' ')
   }).join('\n')
   const contradictions = (session.contradictions || []).map((c) => `- ${c.explanation || c.conflict_type} [${c.severity}]`).join('\n') || '  (none yet)'
+  const askedQuestions = (session.transcript || []).filter((m) => m.role === 'persona' && m.question?.text).map((m) => `- ${m.question.text}`).join('\n') || '  (none yet)'
   const transcript = (session.transcript || []).slice(-12).map((m) => {
     if (m.role === 'founder') return `FOUNDER: ${m.content}`
     return `${m.personaName} (${m.personaRole}): ${m.content}${m.question?.text ? ' Q: ' + m.question.text : ''}`
@@ -460,7 +472,7 @@ async function handleRoute(request, { params }) {
     // ---- PITCH TURN (core) ----
     if (route === '/pitch/turn' && method === 'POST') {
       const body = await request.json()
-      const { session_id, message } = body || {}
+      const { session_id, message, kind } = body || {}
       if (!session_id || !message) return json({ error: 'session_id and message required' }, 400)
       const session = await db.collection('sessions').findOne({ id: session_id })
       if (!session) return json({ error: 'session not found' }, 404)
@@ -470,7 +482,7 @@ async function handleRoute(request, { params }) {
 
       const messages = [
         { role: 'system', content: turnSystemPrompt(panel) },
-        { role: 'user', content: buildTurnUser(session, startup, message) },
+        { role: 'user', content: buildTurnUser(session, startup, message, kind) },
       ]
 
       let result

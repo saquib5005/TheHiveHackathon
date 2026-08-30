@@ -719,6 +719,21 @@ function PitchRoomView({ user, go, sessionId }) {
   if (!session) return <div className="min-h-screen grid place-items-center bg-background"><Loader2 className="w-6 h-6 animate-spin text-brand" /></div>
   const mmss = `${String(Math.floor(elapsed / 60)).padStart(2, '0')}:${String(elapsed % 60).padStart(2, '0')}`
 
+  const isPitch = stage === 'pitch'
+  let micTitle = 'Tap to start'
+  let micHint = ''
+  if (isPitch) {
+    if (!micOn) { micTitle = 'Tap the mic and start pitching'; micHint = 'The panel listens without interrupting. Say "thank you" or tap "Done pitching" when finished (auto-ends at 3:00).' }
+    else if (phase === 'listening') { micTitle = 'Pitching — speak freely'; micHint = 'Say "thank you" or tap "Done pitching" to move to questions.' }
+    else if (phase === 'thinking') { micTitle = 'The panel is preparing its first question...' }
+    else if (phase === 'speaking') { micTitle = 'A judge is speaking...' }
+  } else {
+    if (phase === 'listening') { micTitle = 'Answering — speak your answer'; micHint = 'Pause ~5 seconds when done, or tap "Submit answer".' }
+    else if (phase === 'thinking') { micTitle = 'The panel is considering your answer...' }
+    else if (phase === 'speaking') { micTitle = 'A judge is asking a question...' }
+    else if (!micOn) { micTitle = 'Tap the mic to answer' }
+  }
+
   return (
     <div className="min-h-screen bg-background flex flex-col relative overflow-hidden">
       <FlowLines className="absolute -top-20 right-0 w-[900px] h-[700px] opacity-[0.10] pointer-events-none" />
