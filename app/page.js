@@ -696,7 +696,7 @@ function PitchRoomView({ user, go, sessionId }) {
 
   const recogRef = useRef(null); const finalRef = useRef(''); const interimRef = useRef('')
   const interruptedRef = useRef(false); const maxTimerRef = useRef(null); const sendingRef = useRef(false)
-  const sendFnRef = useRef(() => {}); const ttsOnRef = useRef(true)
+  const sendFnRef = useRef(() => {}); const ttsOnRef = useRef(true); const wantRef = useRef(false)
   useEffect(() => { ttsOnRef.current = ttsOn }, [ttsOn])
 
   useEffect(() => {
@@ -773,28 +773,45 @@ function PitchRoomView({ user, go, sessionId }) {
   useEffect(() => {
     const SR = typeof window !== 'undefined' && (window.SpeechRecognition || window.webkitSpeechRecognition)
     if (!SR) { setMicSupported(false); setTextMode(true); return }
-    const r = new SR(); r.continuous = false; r.interimResults = true; r.lang = 'en-IN'
+    const r = new SR(); r.continuous = true; r.interimResults = true; r.lang = 'en-IN'
     r.onresult = (e) => {
       let fin = '', intr = ''
-      for (let i = 0; i < e.results.length; i++) { const tr = e.results[i][0].transcript; if (e.results[i].isFinal) fin += tr; else intr += tr }
-      if (fin) finalRef.current += fin + ' '
+      for (let i = e.resultIndex; i < e.results.length; i++) { const tr = e.results[i][0].transcript; if (e.results[i].isFinal) fin += tr + ' '; else intr += tr }
+      if (fin) finalRef.current += fin
       interimRef.current = intr; setInterim((finalRef.current + intr).trim())
-      if ((finalRef.current + intr).trim().length > 240 && !interruptedRef.current) { interruptedRef.current = true; try { r.stop() } catch (er) {} }
     }
-    r.onerror = () => {}
-    r.onend = () => { if (maxTimerRef.current) clearTimeout(maxTimerRef.current); sendFnRef.current(interruptedRef.current) }
+    r.onerror = (ev) => {
+      const err = ev && ev.error
+      if (err === 'not-allowed' || err === 'service-not-allowed') {
+        wantRef.current = false; setMicSupported(false); setTextMode(true); setPhase('idle')
+        toast.error('Microphone is blocked. Allow mic access in your browser, or type your pitch below.')
+      }
+      // transient errors (no-speech, aborted, network) are ignored so onend can auto-restart
+    }
+    r.onend = () => {
+      // keep the mic open while the founder still wants to speak (auto-restart)
+      if (wantRef.current) { try { r.start() } catch (er) {} return }
+      if (maxTimerRef.current) clearTimeout(maxTimerRef.current)
+      sendFnRef.current(interruptedRef.current)
+    }
     recogRef.current = r
-    return () => { try { r.abort() } catch (er) {} if (typeof window !== 'undefined' && window.speechSynthesis) window.speechSynthesis.cancel() }
+    return () => { wantRef.current = false; try { r.abort() } catch (er) {} if (typeof window !== 'undefined' && window.speechSynthesis) window.speechSynthesis.cancel() }
   }, [])
 
   const startListening = () => {
     if (!micSupported) { setTextMode(true); return }
     if (typeof window !== 'undefined' && window.speechSynthesis) window.speechSynthesis.cancel()
-    finalRef.current = ''; interimRef.current = ''; interruptedRef.current = false; setInterim(''); setCaption(null); setPhase('listening')
+    finalRef.current = ''; interimRef.current = ''; interruptedRef.current = false; wantRef.current = true
+    setInterim(''); setCaption(null); setPhase('listening')
     try { recogRef.current.start() } catch (e) {}
-    maxTimerRef.current = setTimeout(() => { interruptedRef.current = true; try { recogRef.current.stop() } catch (er) {} }, 16000)
+    // safety cap: auto-submit after 90s so it never gets stuck
+    maxTimerRef.current = setTimeout(() => { stopListening() }, 90000)
   }
-  const stopListening = () => { try { recogRef.current.stop() } catch (e) {} }
+  const stopListening = () => {
+    wantRef.current = false
+    if (maxTimerRef.current) clearTimeout(maxTimerRef.current)
+    try { recogRef.current.stop() } catch (e) {}
+  }
   const skipSpeaking = () => { if (typeof window !== 'undefined' && window.speechSynthesis) window.speechSynthesis.cancel(); setSpeaker(null); setPhase('idle') }
   const sendText = () => { const v = textVal.trim(); if (!v) return; finalRef.current = v; setTextVal(''); finalize(false) }
 
