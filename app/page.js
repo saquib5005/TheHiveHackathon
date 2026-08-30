@@ -102,11 +102,26 @@ export default function App() {
   const [user, setUser] = useState(null)
   const [booted, setBooted] = useState(false)
 
-  const go = useCallback((name, params = {}) => { setRoute({ name, params }); window.scrollTo(0, 0) }, [])
+  const go = useCallback((name, params = {}) => {
+    setRoute({ name, params })
+    try { sessionStorage.setItem('ec_route', JSON.stringify({ name, params })) } catch (e) {}
+    try { window.history.pushState({ ecroute: { name, params } }, '') } catch (e) {}
+    window.scrollTo(0, 0)
+  }, [])
 
   useEffect(() => {
     try { const u = JSON.parse(localStorage.getItem('ec_user') || 'null'); if (u) setUser(u) } catch (e) {}
+    try {
+      const saved = JSON.parse(sessionStorage.getItem('ec_route') || 'null')
+      if (saved && saved.name) { setRoute(saved); window.history.replaceState({ ecroute: saved }, '') }
+    } catch (e) {}
+    const onPop = (e) => {
+      const st = e.state && e.state.ecroute
+      if (st && st.name) { setRoute(st); try { sessionStorage.setItem('ec_route', JSON.stringify(st)) } catch (er) {} }
+    }
+    window.addEventListener('popstate', onPop)
     setBooted(true)
+    return () => window.removeEventListener('popstate', onPop)
   }, [])
 
   const login = (u) => { localStorage.setItem('ec_user', JSON.stringify(u)); setUser(u); go('dashboard') }
@@ -788,7 +803,6 @@ function PitchRoomView({ user, go, sessionId }) {
     else if (phase === 'listening') stopListening()
     else if (phase === 'speaking') skipSpeaking()
   }
-  submitRef.current = submitTurn
 
   const endPitch = async () => {
     if (transcript.filter((m) => m.role === 'founder').length === 0) { toast.error('Give at least part of your pitch first.'); return }

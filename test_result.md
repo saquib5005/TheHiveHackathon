@@ -247,3 +247,24 @@ agent_communication:
     -comment: "Enhanced existing EchoClash app (cloned from user's GitHub) with monetization: (1) tiered auth + subscription gating on pitch sessions, (2) mentor marketplace with dummy-payment bookings, (3) incubator/accelerator directory with connection requests. Please test all NEW backend endpoints listed above. Focus on the pitch-limit gate: free user (phoenix123@gmail.com) has limit 1, pro (test@example.com) has limit 5; POST /api/sessions must return 402 'pitch_limit_reached' when exceeded. Do NOT retest existing pitch/LLM/Deepgram endpoints. Note: creating live sessions consumes the free user's quota — account for that in test ordering (test the gate intentionally)."
     -agent: "testing"
     -comment: "✅ Backend testing complete! All 29 tests passed (7 tasks, 29 individual test cases). Tested all NEW monetization endpoints: (1) Auth tiered login with free/pro tiers and 401 on wrong password, (2) Usage tracking and subscription upgrade (pro/unlimited), (3) Pitch limit gate correctly blocks free users at limit with 402 'pitch_limit_reached', (4) Mentors seed/list/filters/detail all working, (5) Bookings create/list with validation, (6) Incubators seed/list/filters/detail all working, (7) Connection requests create/list with validation. All endpoints return correct status codes, data structures, and error handling. No issues found. Backend is production-ready."
+
+  - task: "Bugfix: panel selection crash + SPA routing (refresh/back)"
+    implemented: true
+    working: true
+    file: "app/page.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: "NA"
+        -agent: "main"
+        -comment: "FIX1: Removed orphaned line 'submitRef.current = submitTurn' in PitchRoomView that threw 'submitRef is not defined' when entering the pitch room after selecting a panel. FIX2: go() now pushes history state + persists route to sessionStorage; on mount route is restored from sessionStorage (replaceState) and a popstate listener handles browser Back. Expected: selecting any of the 3 panels opens the pitch room without crash; refresh keeps the current page; browser Back navigates within the app."
+        -working: true
+        -agent: "testing"
+        -comment: "✅ BOTH BUGS FIXED! BUG 1 (Panel selection crash): Tested panel selection flow - clicked 'Pitch now' → selected Commercial Panel → Pitch Room opened successfully WITHOUT any red error overlay, WITHOUT 'submitRef is not defined' error, and with full UI (3 investor personas, mic button, End pitch button visible). No console errors detected. BUG 2 (SPA routing): (a) Navigated to Mentors page → reloaded → STAYED on Mentors page (not redirected to landing). (b) Navigated to Incubators → pressed browser Back → RETURNED to Mentors page (not landing). (c) Reloaded on Incubators → STAYED on Incubators. All routing tests passed. Screenshots captured showing successful pitch room render and proper page persistence after reload/back navigation."
+
+agent_communication:
+    -agent: "main"
+    -comment: "BUGFIX VERIFICATION NEEDED (frontend). Login as test@example.com / password123 (pro tier, pitch limit 5 so gating won't block). 1) Create a startup if none exists (New startup -> fill required fields -> submit). 2) From dashboard click 'Pitch now' (or 'Re-pitch') -> lands on Panels page showing 3 panels. 3) Click a panel's start button -> MUST open the live Pitch Room WITHOUT the previous 'submitRef is not defined' runtime error (this was the reported crash). Mic/SpeechRecognition won't work headless -> it should fall back to text mode; that's fine, just confirm the pitch room renders. 4) Routing: after reaching any inner page (e.g. mentors or the pitch room), RELOAD the page -> it should stay on that same page (NOT jump back to landing). 5) Press browser Back -> it should navigate to the previous in-app page (not leave the app). Report pass/fail for: panel-selection crash fix, refresh-persists-page, browser-back-works. Do NOT retest unrelated LLM pitch-turn quality."
+    -agent: "testing"
+    -comment: "✅ BUGFIX VERIFICATION COMPLETE - ALL TESTS PASSED! Comprehensive testing performed on both reported bugs. BUG 1: Panel selection no longer crashes - pitch room renders correctly with all UI elements. BUG 2: SPA routing works perfectly - page refresh persists current route (tested on Mentors and Incubators pages), and browser Back navigates within the app (Incubators → Mentors) without leaving to landing page. Both fixes are production-ready. No issues found."
